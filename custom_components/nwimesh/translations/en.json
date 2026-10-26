@@ -1,0 +1,73 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NWI Mesh",
+        "description": "Connect Home Assistant to a Meshtastic community mesh. Defaults are set for NWI Mesh (nwimesh.net); point it at any mesh's HopWatch or MQTT server.",
+        "data": {
+          "name": "Name",
+          "hopwatch_url": "HopWatch URL (network stats; leave blank to disable)",
+          "host": "MQTT server (live messages; leave blank to disable)",
+          "port": "MQTT port",
+          "username": "MQTT username",
+          "password": "MQTT password",
+          "tls": "Use TLS",
+          "root_topic": "MQTT root topic",
+          "channels": "Channels to decode (Name=PSK, comma separated)",
+          "history": "Messages to keep",
+          "broker_name": "Broker name in HopWatch"
+        },
+        "data_description": {
+          "hopwatch_url": "Public aggregate stats from HopWatch. Default: https://hopwatch.nwimesh.net",
+          "host": "Any Meshtastic MQTT server. Default is the public NWI Mesh server.",
+          "root_topic": "Same as the MQTT root topic on your node, e.g. msh/US/IN/NWI",
+          "channels": "Channel name and key as shown in the Meshtastic app. AQ== is the default public key. Only these channels are decoded; direct messages are never readable.",
+          "history": "How many recent messages the Last message sensor keeps for the dashboard.",
+          "broker_name": "Which broker HopWatch reports for the Broker sensor (NWIMesh)."
+        }
+      }
+    },
+    "error": {
+      "nothing_enabled": "Enable at least one of HopWatch or MQTT.",
+      "bad_channels": "Channels must look like LongFast=AQ== (key is base64, 1, 16 or 32 bytes).",
+      "cannot_reach_hopwatch": "Couldn't read /api/v1/stats from that HopWatch URL.",
+      "cannot_connect_mqtt": "Couldn't connect to that MQTT server with these settings."
+    },
+    "abort": {
+      "already_configured": "This mesh is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "NWI Mesh settings",
+        "data": {
+          "hopwatch_url": "HopWatch URL (network stats; leave blank to disable)",
+          "host": "MQTT server (live messages; leave blank to disable)",
+          "port": "MQTT port",
+          "username": "MQTT username",
+          "password": "MQTT password",
+          "tls": "Use TLS",
+          "root_topic": "MQTT root topic",
+          "channels": "Channels to decode (Name=PSK, comma separated)",
+          "history": "Messages to keep",
+          "broker_name": "Broker name in HopWatch"
+        },
+        "data_description": {
+          "hopwatch_url": "Public aggregate stats from HopWatch. Default: https://hopwatch.nwimesh.net",
+          "host": "Any Meshtastic MQTT server. Default is the public NWI Mesh server.",
+          "root_topic": "Same as the MQTT root topic on your node, e.g. msh/US/IN/NWI",
+          "channels": "Channel name and key as shown in the Meshtastic app. AQ== is the default public key. Only these channels are decoded; direct messages are never readable.",
+          "history": "How many recent messages the Last message sensor keeps for the dashboard.",
+          "broker_name": "Which broker HopWatch reports for the Broker sensor (NWIMesh)."
+        }
+      }
+    },
+    "error": {
+      "nothing_enabled": "Enable at least one of HopWatch or MQTT.",
+      "bad_channels": "Channels must look like LongFast=AQ== (key is base64, 1, 16 or 32 bytes).",
+      "cannot_reach_hopwatch": "Couldn't read /api/v1/stats from that HopWatch URL.",
+      "cannot_connect_mqtt": "Couldn't connect to that MQTT server with these settings."
+    }
+  }
+}

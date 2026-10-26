@@ -1,0 +1,353 @@
+# NWI Mesh dashboard (stock) - https://nwimesh.net
+# Requires the NWI Mesh integration (custom_components/nwimesh).
+# Built-in cards only - no HACS needed.
+# Install: Settings > Dashboards > Add dashboard > New dashboard from scratch,
+#          open it, ⋮ > Edit dashboard > ⋮ > Raw configuration editor, paste this file.
+title: NWI Mesh
+views:
+- title: Network
+  path: nwi-mesh
+  type: sections
+  max_columns: 4
+  dense_section_placement: true
+  sections:
+  - type: grid
+    column_span: 4
+    cards:
+    - type: markdown
+      grid_options:
+        columns: full
+        rows: auto
+      content: |-
+        <ha-icon icon="mdi:radio-tower"></ha-icon>
+
+        # NWI Mesh
+        **{{ states('sensor.nwi_mesh_active_nodes') }}** nodes heard in the last 24 h · **{{ states('sensor.nwi_mesh_gateways') }}** gateways · health **{{ states('sensor.nwi_mesh_health') }}** {{ state_attr('sensor.nwi_mesh_health', 'label') or '' }}
+
+        <sub>LAKE · PORTER · LAPORTE  —  MESHTASTIC LONGFAST · US 915 MHz</sub>
+  - type: grid
+    column_span: 2
+    cards:
+    - type: heading
+      heading: Mesh health
+      icon: mdi:heart-pulse
+    - type: gauge
+      entity: sensor.nwi_mesh_health
+      name: Mesh health
+      min: 0
+      max: 100
+      needle: true
+      segments:
+      - from: 0
+        color: '#f87171'
+      - from: 50
+        color: '#fbbf24'
+      - from: 70
+        color: '#67ea94'
+      grid_options:
+        columns: full
+        rows: auto
+    - type: tile
+      entity: sensor.nwi_mesh_health
+      name: Delivery
+      icon: mdi:email-check
+      color: green
+      vertical: true
+      hide_state: false
+      state_content: delivery_ratio
+      grid_options:
+        columns: 6
+        rows: 2
+    - type: tile
+      entity: sensor.nwi_mesh_health
+      name: Coverage
+      icon: mdi:access-point-network
+      color: green
+      vertical: true
+      hide_state: false
+      state_content: gateway_coverage
+      grid_options:
+        columns: 6
+        rows: 2
+    - type: tile
+      entity: sensor.nwi_mesh_health
+      name: Airtime
+      icon: mdi:sine-wave
+      color: green
+      vertical: true
+      hide_state: false
+      state_content: utilization
+      grid_options:
+        columns: 6
+        rows: 2
+    - type: tile
+      entity: sensor.nwi_mesh_health
+      name: Node trend
+      icon: mdi:trending-up
+      color: green
+      vertical: true
+      hide_state: false
+      state_content: active_node_trend
+      grid_options:
+        columns: 6
+        rows: 2
+  - type: grid
+    column_span: 2
+    cards:
+    - type: heading
+      heading: Network
+      icon: mdi:lan
+    - type: tile
+      entity: sensor.nwi_mesh_active_nodes
+      name: Active 24 h
+      color: green
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      icon: mdi:radio-tower
+    - type: tile
+      entity: sensor.nwi_mesh_known_nodes
+      name: Known nodes
+      color: teal
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+    - type: tile
+      entity: sensor.nwi_mesh_new_nodes_today
+      name: New today
+      color: light-green
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+    - type: tile
+      entity: sensor.nwi_mesh_new_nodes_this_week
+      name: New this week
+      color: light-green
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+    - type: tile
+      entity: sensor.nwi_mesh_gateways
+      name: Gateways
+      color: cyan
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+    - type: tile
+      entity: sensor.nwi_mesh_messages_today
+      name: Messages today
+      color: blue
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+    - type: tile
+      entity: sensor.nwi_mesh_relayed_share
+      name: Relayed
+      color: indigo
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+    - type: tile
+      entity: sensor.nwi_mesh_encrypted_nodes
+      name: Encrypted (PKI)
+      color: purple
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+  - type: grid
+    column_span: 4
+    cards:
+    - type: heading
+      heading: Trends
+      icon: mdi:chart-bell-curve-cumulative
+    - type: statistics-graph
+      title: Active nodes · 7 days
+      entities:
+      - sensor.nwi_mesh_active_nodes
+      days_to_show: 7
+      period: hour
+      chart_type: line
+      stat_types:
+      - mean
+      hide_legend: true
+      grid_options:
+        columns: 16
+    - type: statistics-graph
+      title: Packets / hour
+      entities:
+      - sensor.nwi_mesh_packet_rate
+      days_to_show: 2
+      period: hour
+      chart_type: line
+      stat_types:
+      - mean
+      hide_legend: true
+      grid_options:
+        columns: 16
+    - type: statistics-graph
+      title: Channel utilization
+      entities:
+      - sensor.nwi_mesh_channel_utilization
+      days_to_show: 2
+      period: hour
+      chart_type: line
+      stat_types:
+      - mean
+      hide_legend: true
+      grid_options:
+        columns: 16
+  - type: grid
+    column_span: 2
+    cards:
+    - type: heading
+      heading: Infrastructure
+      icon: mdi:server
+    - type: tile
+      entity: binary_sensor.nwi_mesh_broker
+      name: NWIMesh MQTT broker
+      icon: mdi:server-network
+      color: green
+      grid_options:
+        columns: 12
+    - type: tile
+      entity: binary_sensor.nwi_mesh_online
+      name: HopWatch API
+      icon: mdi:api
+      color: green
+      grid_options:
+        columns: 12
+    - type: tile
+      entity: sensor.nwi_mesh_mqtt_brokers_up
+      name: MQTT brokers up
+      icon: mdi:server-network
+      color: teal
+      grid_options:
+        columns: 12
+    - type: tile
+      entity: sensor.nwi_mesh_anomaly_flags
+      name: Open anomaly flags
+      icon: mdi:alert-decagram
+      color: amber
+      grid_options:
+        columns: 12
+    - type: tile
+      entity: sensor.nwi_mesh_packets_today
+      name: Packets today
+      icon: mdi:swap-vertical-bold
+      color: teal
+      grid_options:
+        columns: 12
+    - type: tile
+      entity: sensor.nwi_mesh_delivery_ratio
+      name: Delivery ratio
+      icon: mdi:check-network
+      color: green
+      grid_options:
+        columns: 12
+  - type: grid
+    column_span: 2
+    cards:
+    - type: markdown
+      title: Join the mesh
+      grid_options:
+        columns: full
+      content: |-
+        Grab a Meshtastic radio, flash it at [flasher.meshtastic.org](https://flasher.meshtastic.org), and set:
+
+        | Setting | Value |
+        |---|---|
+        | Region | **US** (915 MHz) |
+        | Preset | **LongFast** |
+        | Hop limit | **7** |
+        | Primary channel key | **AQ==** (default) |
+        | MQTT root | **msh/US/IN/NWI** |
+
+        Starter guide: [nwimesh.net/faq](https://nwimesh.net/faq) · Live map: [hopwatch.nwimesh.net](https://hopwatch.nwimesh.net) · [Discord](https://discord.gg/4wQ5SWPBfQ)
+- title: Messages
+  path: messages
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    column_span: 2
+    cards:
+    - type: markdown
+      title: Mesh chat
+      content: |-
+        {% set msgs = state_attr('sensor.nwi_mesh_last_message', 'recent') or [] %}
+        {% if msgs | count == 0 %}
+        *Listening… public channel messages show up here as the mesh hears them.*
+        {% endif %}
+        {% for m in msgs %}
+        {% set hops = 'direct' if m.hops == 0 else (m.hops ~ ' hop' ~ ('s' if m.hops != 1 else '')) if m.hops is not none else '' %}
+        {% set text = m.text | replace('&', '&amp;') | replace('<', '&lt;') | replace('>', '&gt;') | replace('\n', ' ') %}
+        **{{ m.long_name | replace('<', '&lt;') }}** <sub>{{ m.short_name | replace('<', '&lt;') }} · {{ relative_time(as_datetime(m.time)) }} ago · {{ m.channel }}{{ ' · ' ~ hops if hops }}{{ ' · SNR ' ~ m.snr if m.snr is not none }}</sub>
+        > {{ text }}
+
+        {% endfor %}
+      grid_options:
+        columns: full
+  - type: grid
+    column_span: 1
+    cards:
+    - type: heading
+      heading: Live feed
+      icon: mdi:access-point
+    - type: tile
+      entity: binary_sensor.nwi_mesh_mqtt_connected
+      name: Listening on MQTT
+      icon: mdi:lan-connect
+      color: green
+      grid_options:
+        columns: full
+    - type: tile
+      entity: sensor.nwi_mesh_messages_heard
+      name: Messages heard
+      color: green
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      icon: mdi:message-badge
+    - type: tile
+      entity: sensor.nwi_mesh_nodes_named
+      name: Nodes named
+      color: teal
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      icon: mdi:card-account-details
+    - type: tile
+      entity: sensor.nwi_mesh_messages_today
+      name: Mesh-wide today
+      color: blue
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      icon: mdi:message-text
+    - type: tile
+      entity: sensor.nwi_mesh_active_nodes
+      name: Active 24 h
+      color: green
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      icon: mdi:radio-tower
+    - type: markdown
+      grid_options:
+        columns: full
+      content: |-
+        Only the public channels you configured are decoded (LongFast by default). Direct messages and private channels stay encrypted.
+
+        **Automate it:** trigger on `event.nwi_mesh_message` or the `nwimesh_message` event to get a phone alert for keywords or nodes.

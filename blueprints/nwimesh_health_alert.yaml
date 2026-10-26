@@ -1,0 +1,58 @@
+blueprint:
+  name: NWI Mesh health alert
+  description: >
+    Notify when the NWI Mesh health score drops below a threshold or the
+    NWIMesh MQTT broker goes down. Requires the NWI Mesh package
+    (https://nwimesh.net).
+  domain: automation
+  input:
+    health_sensor:
+      name: Health sensor
+      default: sensor.nwi_mesh_health
+      selector:
+        entity:
+          domain: sensor
+    broker_sensor:
+      name: Broker sensor
+      default: binary_sensor.nwi_mesh_broker
+      selector:
+        entity:
+          domain: binary_sensor
+    threshold:
+      name: Alert when health is below
+      default: 60
+      selector:
+        number:
+          min: 10
+          max: 100
+          step: 5
+    notify_action:
+      name: Notification action
+      description: What to do when the mesh needs attention (e.g. a mobile notify action).
+      selector:
+        action: {}
+
+mode: single
+max_exceeded: silent
+
+trigger:
+  - platform: numeric_state
+    entity_id: !input health_sensor
+    below: !input threshold
+    for: "00:15:00"
+    id: health
+  - platform: state
+    entity_id: !input broker_sensor
+    to: "off"
+    for: "00:10:00"
+    id: broker
+
+action:
+  - variables:
+      health_entity: !input health_sensor
+      message: >
+        {% if trigger.id == 'broker' %}NWI Mesh MQTT broker has been down for 10 minutes.
+        {% else %}NWI Mesh health is {{ states(health_entity) }}/100
+        ({{ state_attr(health_entity, 'label') }}).{% endif %}
+  - choose: []
+    default: !input notify_action

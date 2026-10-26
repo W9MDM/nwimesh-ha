@@ -1,0 +1,13 @@
+{
+  "domain": "nwimesh",
+  "name": "NWI Mesh",
+  "codeowners": ["@W9MDM"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://nwimesh.net",
+  "integration_type": "service",
+  "iot_class": "cloud_push",
+  "issue_tracker": "https://discord.gg/4wQ5SWPBfQ",
+  "requirements": ["paho-mqtt>=2.0.0"],
+  "version": "1.0.0"
+}

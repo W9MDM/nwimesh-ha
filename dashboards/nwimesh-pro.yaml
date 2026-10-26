@@ -1,0 +1,748 @@
+# NWI Mesh dashboard (pro) - https://nwimesh.net
+# Requires the NWI Mesh integration (custom_components/nwimesh).
+# Needs HACS frontend plugins: card-mod, mini-graph-card.
+# Install: Settings > Dashboards > Add dashboard > New dashboard from scratch,
+#          open it, ⋮ > Edit dashboard > ⋮ > Raw configuration editor, paste this file.
+title: NWI Mesh
+views:
+- title: Network
+  path: nwi-mesh
+  type: sections
+  max_columns: 4
+  dense_section_placement: true
+  sections:
+  - type: grid
+    column_span: 4
+    cards:
+    - type: markdown
+      grid_options:
+        columns: full
+        rows: auto
+      content: |-
+        <ha-icon icon="mdi:radio-tower"></ha-icon>
+
+        # NWI Mesh
+        **{{ states('sensor.nwi_mesh_active_nodes') }}** nodes heard in the last 24 h · **{{ states('sensor.nwi_mesh_gateways') }}** gateways · health **{{ states('sensor.nwi_mesh_health') }}** {{ state_attr('sensor.nwi_mesh_health', 'label') or '' }}
+
+        <sub>LAKE · PORTER · LAPORTE  —  MESHTASTIC LONGFAST · US 915 MHz</sub>
+      card_mod:
+        style:
+          .: |
+            ha-card {
+              position: relative; overflow: hidden !important;
+              min-height: 150px; padding: 8px 12px;
+              color: #eafff2;
+              background:
+                radial-gradient(circle at 88% 50%, rgba(103,234,148,.28), transparent 35%),
+                linear-gradient(115deg, #031a14, #0b3d2e, #06303f, #031a14);
+              background-size: 100% 100%, 300% 300%;
+              animation: nwm-shift 20s ease infinite;
+              border: 1px solid rgba(103,234,148,.35);
+              box-shadow: 0 0 40px rgba(103,234,148,.15);
+            }
+            ha-card::before, ha-card::after {
+              content: ''; position: absolute; pointer-events: none;
+              right: calc(6% + 2px); top: 50%;
+              width: 44px; height: 44px; margin-top: -22px;
+              border-radius: 50%; border: 2px solid #67ea94;
+              animation: nwm-ping 3.2s cubic-bezier(0,.45,.55,1) infinite;
+            }
+            ha-card::after { animation-delay: 1.6s; }
+            @keyframes nwm-ping {
+              0%   { transform: scale(1);  opacity: .9; }
+              100% { transform: scale(4);  opacity: 0;  }
+            }
+            @keyframes nwm-shift {
+              0%,100% { background-position: 0 0, 0% 50%; }
+              50%     { background-position: 0 0, 100% 50%; }
+            }
+          ha-markdown$: |
+            :host { overflow: visible !important; }
+            h1 {
+              font-size: 2.3em; font-weight: 800; letter-spacing: -.02em;
+              margin: 4px 0 6px; line-height: 1.1;
+              background: linear-gradient(90deg, #ffffff, #67ea94 60%, #2dd4bf);
+              -webkit-background-clip: text; background-clip: text; color: transparent;
+            }
+            p { margin: 4px 0; padding-right: 96px; font-size: 1.05em; }
+            strong { color: #67ea94; }
+            sub { opacity: .7; letter-spacing: .04em; }
+            ha-icon {
+              position: absolute; right: 6%; top: 50%; transform: translateY(-50%);
+              --mdc-icon-size: 48px; color: #67ea94;
+              filter: drop-shadow(0 0 10px rgba(103,234,148,.8));
+            }
+  - type: grid
+    column_span: 2
+    cards:
+    - type: heading
+      heading: Mesh health
+      icon: mdi:heart-pulse
+    - type: gauge
+      entity: sensor.nwi_mesh_health
+      name: Mesh health
+      min: 0
+      max: 100
+      needle: true
+      segments:
+      - from: 0
+        color: '#f87171'
+      - from: 50
+        color: '#fbbf24'
+      - from: 70
+        color: '#67ea94'
+      grid_options:
+        columns: full
+        rows: auto
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+          {% set h = states('sensor.nwi_mesh_health') | int(0) %}
+          {% set c = '103,234,148' if h >= 70 else ('251,191,36' if h >= 50 else '248,113,113') %}
+          ha-card {
+            border-color: rgba({{ c }},.45);
+            --primary-text-color: rgb({{ c }});
+            animation: nwm-breathe 4s ease-in-out infinite;
+          }
+          @keyframes nwm-breathe {
+            0%,100% { box-shadow: 0 0 14px rgba({{ c }},.15); }
+            50%     { box-shadow: 0 0 34px rgba({{ c }},.45); }
+          }
+    - type: tile
+      entity: sensor.nwi_mesh_health
+      name: Delivery
+      icon: mdi:email-check
+      color: green
+      vertical: true
+      hide_state: false
+      state_content: delivery_ratio
+      grid_options:
+        columns: 6
+        rows: 2
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_health
+      name: Coverage
+      icon: mdi:access-point-network
+      color: green
+      vertical: true
+      hide_state: false
+      state_content: gateway_coverage
+      grid_options:
+        columns: 6
+        rows: 2
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_health
+      name: Airtime
+      icon: mdi:sine-wave
+      color: green
+      vertical: true
+      hide_state: false
+      state_content: utilization
+      grid_options:
+        columns: 6
+        rows: 2
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_health
+      name: Node trend
+      icon: mdi:trending-up
+      color: green
+      vertical: true
+      hide_state: false
+      state_content: active_node_trend
+      grid_options:
+        columns: 6
+        rows: 2
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+  - type: grid
+    column_span: 2
+    cards:
+    - type: heading
+      heading: Network
+      icon: mdi:lan
+    - type: tile
+      entity: sensor.nwi_mesh_active_nodes
+      name: Active 24 h
+      color: green
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      icon: mdi:radio-tower
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_known_nodes
+      name: Known nodes
+      color: teal
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_new_nodes_today
+      name: New today
+      color: light-green
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_new_nodes_this_week
+      name: New this week
+      color: light-green
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_gateways
+      name: Gateways
+      color: cyan
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_messages_today
+      name: Messages today
+      color: blue
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_relayed_share
+      name: Relayed
+      color: indigo
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_encrypted_nodes
+      name: Encrypted (PKI)
+      color: purple
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+  - type: grid
+    column_span: 4
+    cards:
+    - type: heading
+      heading: Trends
+      icon: mdi:chart-bell-curve-cumulative
+    - type: custom:mini-graph-card
+      entities:
+      - entity: sensor.nwi_mesh_active_nodes
+        name: Active nodes · 7 days
+      hours_to_show: 168
+      points_per_hour: 0.5
+      line_color: '#67ea94'
+      line_width: 3
+      smoothing: true
+      animate: true
+      decimals: 0
+      show:
+        fill: fade
+        extrema: false
+        labels: false
+      height: 110
+      grid_options:
+        columns: 16
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: custom:mini-graph-card
+      entities:
+      - entity: sensor.nwi_mesh_packet_rate
+        name: Packets / hour
+      hours_to_show: 48
+      points_per_hour: 1
+      line_color: '#2dd4bf'
+      line_width: 3
+      smoothing: true
+      animate: true
+      decimals: 0
+      show:
+        fill: fade
+        extrema: false
+        labels: false
+      height: 110
+      grid_options:
+        columns: 16
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: custom:mini-graph-card
+      entities:
+      - entity: sensor.nwi_mesh_channel_utilization
+        name: Channel utilization
+      hours_to_show: 48
+      points_per_hour: 1
+      line_color: '#67ea94'
+      line_width: 3
+      smoothing: true
+      animate: true
+      decimals: 1
+      show:
+        fill: fade
+        extrema: false
+        labels: false
+      height: 110
+      grid_options:
+        columns: 16
+      color_thresholds:
+      - value: 0
+        color: '#67ea94'
+      - value: 15
+        color: '#fbbf24'
+      - value: 25
+        color: '#f87171'
+      color_thresholds_transition: smooth
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+  - type: grid
+    column_span: 2
+    cards:
+    - type: heading
+      heading: Infrastructure
+      icon: mdi:server
+    - type: tile
+      entity: binary_sensor.nwi_mesh_broker
+      name: NWIMesh MQTT broker
+      icon: mdi:server-network
+      color: green
+      grid_options:
+        columns: 12
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: binary_sensor.nwi_mesh_online
+      name: HopWatch API
+      icon: mdi:api
+      color: green
+      grid_options:
+        columns: 12
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_mqtt_brokers_up
+      name: MQTT brokers up
+      icon: mdi:server-network
+      color: teal
+      grid_options:
+        columns: 12
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_anomaly_flags
+      name: Open anomaly flags
+      icon: mdi:alert-decagram
+      color: amber
+      grid_options:
+        columns: 12
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_packets_today
+      name: Packets today
+      icon: mdi:swap-vertical-bold
+      color: teal
+      grid_options:
+        columns: 12
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_delivery_ratio
+      name: Delivery ratio
+      icon: mdi:check-network
+      color: green
+      grid_options:
+        columns: 12
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+  - type: grid
+    column_span: 2
+    cards:
+    - type: markdown
+      title: Join the mesh
+      grid_options:
+        columns: full
+      content: |-
+        Grab a Meshtastic radio, flash it at [flasher.meshtastic.org](https://flasher.meshtastic.org), and set:
+
+        | Setting | Value |
+        |---|---|
+        | Region | **US** (915 MHz) |
+        | Preset | **LongFast** |
+        | Hop limit | **7** |
+        | Primary channel key | **AQ==** (default) |
+        | MQTT root | **msh/US/IN/NWI** |
+
+        Starter guide: [nwimesh.net/faq](https://nwimesh.net/faq) · Live map: [hopwatch.nwimesh.net](https://hopwatch.nwimesh.net) · [Discord](https://discord.gg/4wQ5SWPBfQ)
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+- title: Messages
+  path: messages
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    column_span: 2
+    cards:
+    - type: markdown
+      title: Mesh chat
+      content: |-
+        {% set msgs = state_attr('sensor.nwi_mesh_last_message', 'recent') or [] %}
+        {% if msgs | count == 0 %}
+        *Listening… public channel messages show up here as the mesh hears them.*
+        {% endif %}
+        {% for m in msgs %}
+        {% set hops = 'direct' if m.hops == 0 else (m.hops ~ ' hop' ~ ('s' if m.hops != 1 else '')) if m.hops is not none else '' %}
+        {% set text = m.text | replace('&', '&amp;') | replace('<', '&lt;') | replace('>', '&gt;') | replace('\n', ' ') %}
+        **{{ m.long_name | replace('<', '&lt;') }}** <sub>{{ m.short_name | replace('<', '&lt;') }} · {{ relative_time(as_datetime(m.time)) }} ago · {{ m.channel }}{{ ' · ' ~ hops if hops }}{{ ' · SNR ' ~ m.snr if m.snr is not none }}</sub>
+        > {{ text }}
+
+        {% endfor %}
+      grid_options:
+        columns: full
+      card_mod:
+        style:
+          .: |
+            ha-card {
+              background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+              border: 1px solid rgba(103,234,148,.22);
+              box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+              backdrop-filter: blur(6px);
+              transition: box-shadow .3s, transform .3s;
+            }
+            ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+          ha-markdown$: |
+            blockquote {
+              margin: 4px 0 16px; padding: 10px 14px;
+              border: none; border-left: 3px solid #67ea94;
+              border-radius: 4px 16px 16px 16px;
+              background: linear-gradient(135deg, rgba(103,234,148,.16), rgba(45,212,191,.06));
+              font-size: 1.05em; line-height: 1.4;
+            }
+            strong { color: #67ea94; }
+            sub { opacity: .65; margin-left: 4px; }
+  - type: grid
+    column_span: 1
+    cards:
+    - type: heading
+      heading: Live feed
+      icon: mdi:access-point
+    - type: tile
+      entity: binary_sensor.nwi_mesh_mqtt_connected
+      name: Listening on MQTT
+      icon: mdi:lan-connect
+      color: green
+      grid_options:
+        columns: full
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_messages_heard
+      name: Messages heard
+      color: green
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      icon: mdi:message-badge
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_nodes_named
+      name: Nodes named
+      color: teal
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      icon: mdi:card-account-details
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_messages_today
+      name: Mesh-wide today
+      color: blue
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      icon: mdi:message-text
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: tile
+      entity: sensor.nwi_mesh_active_nodes
+      name: Active 24 h
+      color: green
+      vertical: true
+      grid_options:
+        columns: 6
+        rows: 2
+      icon: mdi:radio-tower
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }
+    - type: markdown
+      grid_options:
+        columns: full
+      content: |-
+        Only the public channels you configured are decoded (LongFast by default). Direct messages and private channels stay encrypted.
+
+        **Automate it:** trigger on `event.nwi_mesh_message` or the `nwimesh_message` event to get a phone alert for keywords or nodes.
+      card_mod:
+        style: |
+          ha-card {
+            background: linear-gradient(150deg, rgba(103,234,148,.10), rgba(45,212,191,.03) 60%, rgba(255,255,255,.01));
+            border: 1px solid rgba(103,234,148,.22);
+            box-shadow: 0 0 22px rgba(103,234,148,.08), inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(6px);
+            transition: box-shadow .3s, transform .3s;
+          }
+          ha-card:hover { box-shadow: 0 0 28px rgba(103,234,148,.25); transform: translateY(-2px); }

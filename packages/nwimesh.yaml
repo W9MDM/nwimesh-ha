@@ -1,0 +1,178 @@
+# NWI Mesh for Home Assistant
+# Live health stats for the NWI Mesh Meshtastic network (https://nwimesh.net)
+#
+# Install:
+#   1. Copy this file to /config/packages/nwimesh.yaml
+#   2. Make sure configuration.yaml has:
+#        homeassistant:
+#          packages: !include_dir_named packages
+#   3. Restart Home Assistant.
+#
+# Data comes from the public HopWatch API (aggregate stats only; no node
+# names, positions or messages). Please keep scan_interval at 300s or more
+# so the community server stays happy.
+
+rest:
+  - resource: https://hopwatch.nwimesh.net/api/v1/stats
+    scan_interval: 300
+    timeout: 20
+    headers:
+      User-Agent: HomeAssistant-NWIMesh/1.0
+      Accept: application/json
+    sensor:
+      - name: NWI Mesh Health
+        unique_id: nwimesh_health_score
+        icon: mdi:heart-pulse
+        state_class: measurement
+        availability: "{{ value_json.health.score is number }}"
+        value_template: "{{ value_json.health.score }}"
+        json_attributes_path: "$.health"
+        json_attributes:
+          - label
+          - utilization
+          - delivery_ratio
+          - gateway_coverage
+          - active_node_trend
+
+      # count of open anomaly flags (e.g. unresolved pubkey-spoof detections),
+      # not a score: 0 = clean
+      - name: NWI Mesh Anomaly Flags
+        unique_id: nwimesh_anomaly_flags
+        icon: mdi:alert-decagram
+        unit_of_measurement: flags
+        state_class: measurement
+        value_template: "{{ value_json.health.anomalies | int(0) }}"
+
+      - name: NWI Mesh Active Nodes
+        unique_id: nwimesh_active_nodes_24h
+        icon: mdi:radio-tower
+        unit_of_measurement: nodes
+        state_class: measurement
+        value_template: "{{ value_json.nodes.active_24h }}"
+        json_attributes_path: "$.nodes"
+        json_attributes:
+          - active_48h
+          - known
+          - new_7d
+          - new_24h
+          - with_public_key
+
+      - name: NWI Mesh Known Nodes
+        unique_id: nwimesh_known_nodes
+        icon: mdi:account-group
+        unit_of_measurement: nodes
+        state_class: measurement
+        value_template: "{{ value_json.nodes.known }}"
+
+      - name: NWI Mesh New Nodes Today
+        unique_id: nwimesh_new_nodes_24h
+        icon: mdi:new-box
+        unit_of_measurement: nodes
+        state_class: measurement
+        value_template: "{{ value_json.nodes.new_24h }}"
+
+      - name: NWI Mesh New Nodes This Week
+        unique_id: nwimesh_new_nodes_7d
+        icon: mdi:calendar-plus
+        unit_of_measurement: nodes
+        state_class: measurement
+        value_template: "{{ value_json.nodes.new_7d }}"
+
+      - name: NWI Mesh Gateways
+        unique_id: nwimesh_gateways
+        icon: mdi:access-point-network
+        unit_of_measurement: gateways
+        state_class: measurement
+        value_template: "{{ value_json.gateways.count }}"
+        json_attributes_path: "$.gateways"
+        json_attributes:
+          - direct_pairs
+
+      - name: NWI Mesh Packets Today
+        unique_id: nwimesh_packets_24h
+        icon: mdi:swap-vertical-bold
+        unit_of_measurement: packets
+        state_class: measurement
+        value_template: "{{ value_json.traffic.packets_24h }}"
+        json_attributes_path: "$.traffic"
+        json_attributes:
+          - receptions_24h
+          - direct
+          - relayed
+
+      # latest complete hour (HA keeps the history for graphs)
+      - name: NWI Mesh Packet Rate
+        unique_id: nwimesh_packets_per_hour
+        icon: mdi:speedometer
+        unit_of_measurement: packets/h
+        state_class: measurement
+        value_template: "{{ value_json.traffic.packets_per_hr_48h }}"
+
+      - name: NWI Mesh Channel Utilization
+        unique_id: nwimesh_channel_utilization
+        icon: mdi:sine-wave
+        unit_of_measurement: "%"
+        state_class: measurement
+        value_template: "{{ value_json.traffic.channel_util_48h_pct }}"
+
+      - name: NWI Mesh Delivery Ratio
+        unique_id: nwimesh_delivery_ratio
+        icon: mdi:check-network
+        unit_of_measurement: "%"
+        state_class: measurement
+        # sub-scores are null while a factor has no evidence yet
+        availability: "{{ value_json.health.delivery_ratio is number }}"
+        value_template: "{{ value_json.health.delivery_ratio }}"
+
+      - name: NWI Mesh Relayed Share
+        unique_id: nwimesh_relayed_share
+        icon: mdi:transit-connection-variant
+        unit_of_measurement: "%"
+        state_class: measurement
+        value_template: >
+          {% set t = value_json.traffic %}
+          {% set total = t.direct + t.relayed %}
+          {{ (t.relayed / total * 100) | round(0) if total > 0 else 0 }}
+
+      - name: NWI Mesh Messages Today
+        unique_id: nwimesh_text_messages_today
+        icon: mdi:message-text
+        unit_of_measurement: messages
+        state_class: measurement
+        value_template: "{{ value_json.traffic.text_messages_today }}"
+
+      - name: NWI Mesh Encrypted Nodes
+        unique_id: nwimesh_pki_share
+        icon: mdi:shield-key
+        unit_of_measurement: "%"
+        state_class: measurement
+        value_template: >
+          {% set n = value_json.nodes %}
+          {{ (n.with_public_key / n.known * 100) | round(0) if n.known > 0 else 0 }}
+
+      # real MQTT brokers only: skip the RF station row ("node") and disabled
+      # placeholders. Counters reset to 0 when HopWatch redeploys.
+      - name: NWI Mesh MQTT Brokers Up
+        unique_id: nwimesh_brokers_up
+        icon: mdi:server-network
+        unit_of_measurement: brokers
+        state_class: measurement
+        value_template: >
+          {{ value_json.brokers | rejectattr('name', 'in', ['node', 'primary'])
+             | selectattr('up') | list | count }}
+        json_attributes:
+          - brokers
+          - generated_at
+
+    binary_sensor:
+      - name: NWI Mesh Broker
+        unique_id: nwimesh_broker_up
+        device_class: connectivity
+        value_template: >
+          {{ value_json.brokers | selectattr('name', 'eq', 'NWIMesh')
+             | map(attribute='up') | first | default(false) }}
+
+      - name: NWI Mesh Online
+        unique_id: nwimesh_api_online
+        device_class: connectivity
+        value_template: "{{ value_json.health is defined }}"

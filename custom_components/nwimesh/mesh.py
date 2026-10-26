@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Callable
+import json
 import logging
 import ssl
 
@@ -13,7 +14,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from . import meshdecode as md
-from .const import DOMAIN, EVENT_MESSAGE, MAX_NODES, STORAGE_VERSION
+from .const import DOMAIN, EVENT_MESSAGE, HOPWATCH_TEXT_TOPIC, MAX_NODES, STORAGE_VERSION
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -130,13 +131,18 @@ class MeshListener:
             _LOGGER.warning("MQTT connect to %s failed: %s", self.host, reason_code)
             return
         client.subscribe(f"{self.root}/2/e/#")
+        # decoded, de-duplicated text from every source HopWatch ingests
+        client.subscribe(f"{self.root}/{HOPWATCH_TEXT_TOPIC}")
         self.hass.loop.call_soon_threadsafe(self._set_connected, True)
 
     def _on_disconnect(self, client, userdata, flags, reason_code, properties) -> None:
         self.hass.loop.call_soon_threadsafe(self._set_connected, False)
 
     def _on_message(self, client, userdata, msg) -> None:
-        self.hass.loop.call_soon_threadsafe(self._handle, msg.payload)
+        if msg.topic.endswith(HOPWATCH_TEXT_TOPIC):
+            self.hass.loop.call_soon_threadsafe(self._handle_hopwatch, msg.payload)
+        else:
+            self.hass.loop.call_soon_threadsafe(self._handle, msg.payload)
 
     # ------------------------------------------------------------ event loop
     @callback
@@ -151,14 +157,8 @@ class MeshListener:
             return
         self.packets_heard += 1
         # the same packet arrives once per gateway that heard it
-        pid = pkt.get("id")
-        if pid:
-            if pid in self._seen_set:
-                return
-            if len(self._seen) == self._seen.maxlen:
-                self._seen_set.discard(self._seen[0])
-            self._seen.append(pid)
-            self._seen_set.add(pid)
+        if self._is_duplicate(pkt.get("id")):
+            return
 
         data = pkt["data"]
         sender = md.node_id(pkt["from"])
@@ -170,7 +170,47 @@ class MeshListener:
             self._add_message(pkt, sender, data)
 
     @callback
+    def _is_duplicate(self, pid: int | None) -> bool:
+        if not pid:
+            return False
+        if pid in self._seen_set:
+            return True
+        if len(self._seen) == self._seen.maxlen:
+            self._seen_set.discard(self._seen[0])
+        self._seen.append(pid)
+        self._seen_set.add(pid)
+        return False
+
+    @callback
+    def _handle_hopwatch(self, payload: bytes) -> None:
+        """JSON text message republished by HopWatch (schema_version 1)."""
+        try:
+            m = json.loads(payload)
+            pid = int(m.get("id") or 0)
+            sender = str(m["from"])
+            text = str(m["text"])
+        except (ValueError, KeyError, TypeError):
+            return
+        if self._is_duplicate(pid):
+            return
+        if m.get("long_name"):
+            self._remember_node(sender, {"long_name": m["long_name"], "short_name": m.get("short_name", "")})
+        self._add_message(
+            {
+                "channel_id": m.get("channel"),
+                "rx_snr": m.get("snr"),
+                "rx_rssi": m.get("rssi"),
+                "gateway_id": m.get("gateway"),
+                "hops": m.get("hops"),
+                "time": m.get("time"),
+            },
+            sender,
+            {"payload": text.encode(), "emoji": m.get("emoji")},
+        )
+
+    @callback
     def _remember_node(self, sender: str, user: dict) -> None:
+        is_new = sender not in self.nodes
         self.nodes[sender] = {
             "long_name": user.get("long_name", "")[:40],
             "short_name": user.get("short_name", "")[:4],
@@ -181,6 +221,8 @@ class MeshListener:
             for key in oldest:
                 del self.nodes[key]
         self._store.async_delay_save(self._data_to_save, 120)
+        if is_new:
+            self._notify()
 
     @callback
     def _add_message(self, pkt: dict, sender: str, data: dict) -> None:
@@ -188,11 +230,11 @@ class MeshListener:
         if not text:
             return
         node = self.nodes.get(sender, {})
-        hops = None
-        if pkt.get("hop_start") is not None and pkt.get("hop_limit") is not None:
+        hops = pkt.get("hops")
+        if hops is None and pkt.get("hop_start") is not None and pkt.get("hop_limit") is not None:
             hops = pkt["hop_start"] - pkt["hop_limit"]
         msg = {
-            "time": dt_util.utcnow().isoformat(timespec="seconds"),
+            "time": pkt.get("time") or dt_util.utcnow().isoformat(timespec="seconds"),
             "node": sender,
             "long_name": node.get("long_name") or sender,
             "short_name": node.get("short_name") or sender[-4:],

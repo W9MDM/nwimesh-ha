@@ -25,5 +25,7 @@ STATS_PATH = "/api/v1/stats"
 STATS_INTERVAL = 300  # seconds; please be kind to the community server
 
 EVENT_MESSAGE = f"{DOMAIN}_message"
+# HopWatch republishes decoded public-channel text here (under the root topic)
+HOPWATCH_TEXT_TOPIC = "hopwatch/v1/text"
 STORAGE_VERSION = 1
 MAX_NODES = 3000
